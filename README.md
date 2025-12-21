@@ -201,8 +201,5 @@ The project generates:
 - Results are saved in the `visualizations/` folder
 - The project follows all requirements from the AIE 121 ML Final Project specification
 
-## Author
 
-Machine Learning Course - AIE 121
-Alamein International University
 
