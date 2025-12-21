@@ -1,4 +1,4 @@
-# AIE 121 - Machine Learning Final Project
+# Machine Learning Final Project
 
 ## Customer Churn Prediction & Customer Lifetime Value Prediction
 
@@ -200,6 +200,7 @@ The project generates:
 - All models are trained and evaluated with proper train/test splits
 - Results are saved in the `visualizations/` folder
 - The project follows all requirements from the AIE 121 ML Final Project specification
+
 
 
 
