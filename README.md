@@ -199,7 +199,8 @@ The project generates:
 - The dataset is generated synthetically with intentional data quality issues
 - All models are trained and evaluated with proper train/test splits
 - Results are saved in the `visualizations/` folder
-- The project follows all requirements from the AIE 121 ML Final Project specification
+
+
 
 
 
