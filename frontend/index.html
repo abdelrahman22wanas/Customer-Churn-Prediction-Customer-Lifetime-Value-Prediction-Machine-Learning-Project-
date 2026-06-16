@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Churn &amp; CLV Predictor</title>
+  <style>
+    *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d28;
+      --border: #2a2d3a;
+      --text: #e4e6ef;
+      --muted: #8b8fa3;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 10px;
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 780px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 0.35rem;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field.full { grid-column: 1 / -1; }
+    .field label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .field input, .field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.75rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field input[type="range"] {
+      padding: 0;
+      border: none;
+      background: transparent;
+      accent-color: var(--accent);
+    }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    .range-row input { flex: 1; }
+    .range-row span { min-width: 2rem; text-align: right; font-weight: 600; }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .actions button {
+      flex: 1;
+      min-width: 180px;
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .actions button:active { transform: scale(0.97); }
+    .actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-churn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+    }
+    .btn-clv {
+      background: linear-gradient(135deg, #06b6d4, #0ea5e9);
+      color: #fff;
+    }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      display: none;
+      border: 1px solid var(--border);
+    }
+    .result.show { display: block; animation: fadeIn .3s ease; }
+    .result h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .result .value { font-size: 1.4rem; font-weight: 700; }
+    .result .value.churn-yes { color: var(--danger); }
+    .result .value.churn-no { color: var(--success); }
+    .result .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+    .result.error {
+      border-color: var(--danger);
+      background: rgba(239,68,68,0.08);
+    }
+    .result.error .value { color: var(--danger); font-size: 0.95rem; }
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+      .actions { flex-direction: column; }
+      .actions button { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Customer Churn &amp; CLV Predictor</h1>
+    <p>Enter customer data to predict churn probability and lifetime value</p>
+  </header>
+
+  <div class="card">
+    <h2>Customer Details</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Age</label>
+        <input type="number" id="age" value="45" min="18" max="120" />
+      </div>
+      <div class="field">
+        <label>Tenure (months)</label>
+        <input type="number" id="tenure_months" value="24" min="0" max="600" />
+      </div>
+      <div class="field">
+        <label>Monthly Charges ($)</label>
+        <input type="number" id="monthly_charges" value="85.50" step="0.01" min="0" />
+      </div>
+      <div class="field">
+        <label>Total Charges ($)</label>
+        <input type="number" id="total_charges" value="1200.00" step="0.01" min="0" />
+      </div>
+      <div class="field">
+        <label>Monthly Usage (GB)</label>
+        <input type="number" id="monthly_usage_gb" value="25" step="0.1" min="0" />
+      </div>
+      <div class="field">
+        <label>Services</label>
+        <input type="number" id="number_of_services" value="3" min="0" max="20" />
+      </div>
+      <div class="field full">
+        <label>Satisfaction Score</label>
+        <div class="range-row">
+          <input type="range" id="customer_satisfaction" min="1" max="10" value="7" />
+          <span id="sat_value">7</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Gender</label>
+        <select id="gender"><option value="male">Male</option><option value="female">Female</option></select>
+      </div>
+      <div class="field">
+        <label>Contract Type</label>
+        <select id="contract_type">
+          <option value="month-to-month">Month-to-Month</option>
+          <option value="one year">One Year</option>
+          <option value="two year">Two Year</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Payment Method</label>
+        <select id="payment_method">
+          <option value="electronic check">Electronic Check</option>
+          <option value="mailed check">Mailed Check</option>
+          <option value="bank transfer">Bank Transfer</option>
+          <option value="credit card">Credit Card</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Internet Service</label>
+        <select id="internet_service">
+          <option value="fiber optic">Fiber Optic</option>
+          <option value="dsl">DSL</option>
+          <option value="no">None</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Phone Service</label>
+        <select id="phone_service"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="field">
+        <label>Streaming TV</label>
+        <select id="streaming_tv"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+      <div class="field">
+        <label>Streaming Movies</label>
+        <select id="streaming_movies"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Predict</h2>
+    <div class="actions">
+      <button class="btn-churn" id="btn_churn" onclick="predict('churn')">Predict Churn</button>
+      <button class="btn-clv" id="btn_clv" onclick="predict('clv')">Predict CLV</button>
+    </div>
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://churn-clv-api.fly.dev';
+
+document.getElementById('customer_satisfaction').addEventListener('input', function() {
+  document.getElementById('sat_value').textContent = this.value;
+});
+
+function gather() {
+  const toNum = (id) => parseFloat(document.getElementById(id).value);
+  const toStr = (id) => document.getElementById(id).value;
+  return {
+    age: toNum('age'),
+    monthly_charges: toNum('monthly_charges'),
+    total_charges: toNum('total_charges'),
+    tenure_months: toNum('tenure_months'),
+    monthly_usage_gb: toNum('monthly_usage_gb'),
+    customer_satisfaction: toNum('customer_satisfaction'),
+    number_of_services: toNum('number_of_services'),
+    gender: toStr('gender'),
+    contract_type: toStr('contract_type'),
+    payment_method: toStr('payment_method'),
+    internet_service: toStr('internet_service'),
+    phone_service: toStr('phone_service'),
+    streaming_tv: toStr('streaming_tv'),
+    streaming_movies: toStr('streaming_movies'),
+  };
+}
+
+async function predict(type) {
+  const btn = document.getElementById(type === 'churn' ? 'btn_churn' : 'btn_clv');
+  const result = document.getElementById('result');
+  const payload = gather();
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Predicting...';
+  result.classList.remove('show', 'error');
+
+  try {
+    const res = await fetch(`${API}/predict/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.detail ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail) : 'Unknown error';
+      result.className = 'result show error';
+      result.innerHTML = `<h3>Error</h3><div class="value">${msg}</div>`;
+      return;
+    }
+
+    if (type === 'churn') {
+      const isChurn = data.churn_prediction === 'yes';
+      result.className = 'result show';
+      result.innerHTML = `
+        <h3>Churn Prediction</h3>
+        <div class="value ${isChurn ? 'churn-yes' : 'churn-no'}">${isChurn ? '⚠️ Will Churn' : '✅ Will Not Churn'}</div>
+        <div class="sub">Probability: ${(data.probability * 100).toFixed(1)}% churn likelihood</div>
+      `;
+    } else {
+      result.className = 'result show';
+      result.innerHTML = `
+        <h3>Customer Lifetime Value</h3>
+        <div class="value" style="color:var(--accent)">$${data.predicted_lifetime_value.toLocaleString('en-US', {minimumFractionDigits:2})}</div>
+        <div class="sub">Predicted total lifetime value</div>
+      `;
+    }
+  } catch (err) {
+    result.className = 'result show error';
+    result.innerHTML = `<h3>Connection Error</h3><div class="value">Could not reach the API. Check your connection or try again.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = type === 'churn' ? 'Predict Churn' : 'Predict CLV';
+  }
+}
+</script>
+</body>
+</html>
