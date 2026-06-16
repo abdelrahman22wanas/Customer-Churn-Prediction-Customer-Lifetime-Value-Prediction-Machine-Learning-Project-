@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for churn-clv-api on 2026-06-16T10:27:15+02:00
+# fly.toml app configuration file generated for customer-churn-prediction-customer-lifetime-value on 2026-06-16T07:32:04Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'churn-clv-api'
+app = 'customer-churn-prediction-customer-lifetime-value'
 primary_region = 'iad'
 
 [build]
