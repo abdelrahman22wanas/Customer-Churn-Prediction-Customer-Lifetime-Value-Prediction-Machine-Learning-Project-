@@ -607,20 +607,27 @@ async function predict(type) {
   result.classList.remove('show', 'error');
   destroyCharts();
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
   try {
     const res = await fetch(`${API}/predict/${type}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
-    const data = await res.json();
+    clearTimeout(timeout);
+
+    let data;
+    try { data = await res.json(); } catch { data = null; }
 
     if (!res.ok) {
-      const msg = data.detail
+      const msg = data?.detail
         ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
-        : 'Unknown error';
+        : `Server returned ${res.status} ${res.statusText}`;
       result.className = 'result show error';
-      result.innerHTML = `<h3>Error</h3><div class="value">${msg}</div>`;
+      result.innerHTML = `<h3>Error ${res.status}</h3><div class="value">${msg}</div>`;
       return;
     }
 
@@ -628,8 +635,13 @@ async function predict(type) {
     else renderCLVCharts(data);
 
   } catch (err) {
+    clearTimeout(timeout);
     result.className = 'result show error';
-    result.innerHTML = '<h3>Connection Error</h3><div class="value">Could not reach the API. Check your connection or try again.</div>';
+    if (err.name === 'AbortError') {
+      result.innerHTML = '<h3>Request Timed Out</h3><div class="value">The server took too long to respond. If this is the first request in a while, the server may be waking up — please try again.</div>';
+    } else {
+      result.innerHTML = `<h3>Connection Error</h3><div class="value">${err.message}</div>`;
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = type === 'churn' ? 'Predict Churn' : 'Predict CLV';
