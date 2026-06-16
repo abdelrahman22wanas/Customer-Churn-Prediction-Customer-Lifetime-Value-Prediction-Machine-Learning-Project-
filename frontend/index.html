@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Customer Churn &amp; CLV Predictor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -13,8 +14,8 @@
       --text: #e4e6ef;
       --muted: #8b8fa3;
       --accent: #6366f1;
-      --accent-hover: #4f46e5;
       --success: #22c55e;
+      --warning: #eab308;
       --danger: #ef4444;
       --radius: 10px;
     }
@@ -27,26 +28,15 @@
       justify-content: center;
       padding: 2rem 1rem;
     }
-    .container {
-      max-width: 780px;
-      width: 100%;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    .container { max-width: 900px; width: 100%; }
+    header { text-align: center; margin-bottom: 2rem; }
     header h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
+      font-size: 1.75rem; font-weight: 700;
       background: linear-gradient(135deg, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    header p {
-      color: var(--muted);
-      margin-top: 0.35rem;
-      font-size: 0.9rem;
-    }
+    header p { color: var(--muted); margin-top: 0.35rem; font-size: 0.9rem; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -55,10 +45,7 @@
       margin-bottom: 1rem;
     }
     .card h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--accent);
+      font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);
     }
     .grid {
       display: grid;
@@ -68,11 +55,8 @@
     .field { display: flex; flex-direction: column; gap: 0.25rem; }
     .field.full { grid-column: 1 / -1; }
     .field label {
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      font-size: 0.78rem; font-weight: 500; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
     }
     .field input, .field select {
       background: var(--bg);
@@ -86,75 +70,66 @@
     }
     .field input:focus, .field select:focus { border-color: var(--accent); }
     .field input[type="range"] {
-      padding: 0;
-      border: none;
-      background: transparent;
-      accent-color: var(--accent);
+      padding: 0; border: none; background: transparent; accent-color: var(--accent);
     }
     .range-row { display: flex; align-items: center; gap: 0.75rem; }
     .range-row input { flex: 1; }
     .range-row span { min-width: 2rem; text-align: right; font-weight: 600; }
-    .actions {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .actions button {
-      flex: 1;
-      min-width: 180px;
-      padding: 0.75rem 1.25rem;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .2s, transform .1s;
+      flex: 1; min-width: 180px; padding: 0.75rem 1.25rem;
+      border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: opacity .2s, transform .1s;
     }
     .actions button:active { transform: scale(0.97); }
     .actions button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .btn-churn {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
     }
     .btn-clv {
-      background: linear-gradient(135deg, #06b6d4, #0ea5e9);
-      color: #fff;
+      background: linear-gradient(135deg, #06b6d4, #0ea5e9); color: #fff;
     }
     .result {
-      margin-top: 1rem;
-      padding: 1rem 1.25rem;
-      border-radius: 8px;
-      display: none;
-      border: 1px solid var(--border);
+      margin-top: 1rem; display: none;
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
     }
     .result.show { display: block; animation: fadeIn .3s ease; }
-    .result h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .result .value { font-size: 1.4rem; font-weight: 700; }
-    .result .value.churn-yes { color: var(--danger); }
-    .result .value.churn-no { color: var(--success); }
-    .result .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
     .result.error {
-      border-color: var(--danger);
-      background: rgba(239,68,68,0.08);
+      padding: 1rem 1.25rem;
+      border-color: var(--danger); background: rgba(239,68,68,0.08);
     }
     .result.error .value { color: var(--danger); font-size: 0.95rem; }
+    .charts-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem;
+    }
+    .chart-box {
+      background: var(--bg); border-radius: 8px; padding: 0.75rem;
+      text-align: center;
+    }
+    .chart-box h3 {
+      font-size: 0.8rem; font-weight: 500; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem;
+    }
+    .chart-box canvas { max-height: 190px; max-width: 100%; margin: 0 auto; }
+    .chart-box .stat-value {
+      font-size: 1.1rem; font-weight: 700; margin-top: 0.3rem;
+    }
+    .chart-box .stat-label { font-size: 0.75rem; color: var(--muted); }
+    .chart-box .stat-row { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.3rem; }
+    .chart-box .stat-row div { text-align: center; }
     .spinner {
-      display: inline-block;
-      width: 1rem;
-      height: 1rem;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .6s linear infinite;
-      vertical-align: middle;
-      margin-right: 0.4rem;
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: 0.4rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 600px) {
+    @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
       .actions { flex-direction: column; }
       .actions button { min-width: auto; }
+      .charts-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -249,12 +224,16 @@
       <button class="btn-churn" id="btn_churn" onclick="predict('churn')">Predict Churn</button>
       <button class="btn-clv" id="btn_clv" onclick="predict('clv')">Predict CLV</button>
     </div>
-    <div class="result" id="result"></div>
+
+    <div class="result" id="result">
+      <div class="charts-row" id="charts_wrapper"></div>
+    </div>
   </div>
 </div>
 
 <script>
 const API = 'https://churn-clv-api.fly.dev';
+let chartInstances = {};
 
 document.getElementById('customer_satisfaction').addEventListener('input', function() {
   document.getElementById('sat_value').textContent = this.value;
@@ -281,6 +260,343 @@ function gather() {
   };
 }
 
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { if (c) c.destroy(); });
+  chartInstances = {};
+}
+
+function churnColor(prob) {
+  if (prob < 0.35) return '#22c55e';
+  if (prob < 0.55) return '#eab308';
+  return '#ef4444';
+}
+
+function renderChurnCharts(data) {
+  const wrapper = document.getElementById('charts_wrapper');
+  wrapper.innerHTML = `
+    <div class="chart-box"><h3>Churn Probability</h3><canvas id="chart_gauge"></canvas></div>
+    <div class="chart-box"><h3>Prediction Confidence</h3><canvas id="chart_bars"></canvas></div>
+    <div class="chart-box"><h3>Customer Profile</h3><canvas id="chart_radar"></canvas></div>
+    <div class="chart-box"><h3>Risk Indicators</h3><canvas id="chart_risk"></canvas></div>
+  `;
+  document.getElementById('result').classList.add('show');
+  const p = data.probability;
+  const c = churnColor(p);
+
+  chartInstances.gauge = new Chart(document.getElementById('chart_gauge'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Churn Risk', 'Safe'],
+      datasets: [{
+        data: [p, 1 - p],
+        backgroundColor: [c, '#1a1d28'],
+        borderWidth: 0,
+        cutout: '78%',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${(ctx.parsed * 100).toFixed(1)}%` } }
+      }
+    },
+    plugins: [{
+      id: 'gaugeText',
+      afterDraw(chart) {
+        const { ctx, data } = chart;
+        const meta = chart.getDatasetMeta(0);
+        const arc = meta.data[0];
+        const cx = arc.x; const cy = arc.y;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '700 24px system-ui';
+        ctx.fillStyle = churnColor(p);
+        ctx.fillText(`${(p * 100).toFixed(1)}%`, cx, cy - 6);
+        ctx.font = '400 11px system-ui';
+        ctx.fillStyle = '#8b8fa3';
+        ctx.fillText('churn risk', cx, cy + 16);
+        ctx.restore();
+      }
+    }]
+  });
+
+  chartInstances.bars = new Chart(document.getElementById('chart_bars'), {
+    type: 'bar',
+    data: {
+      labels: ['Will Not Churn', 'Will Churn'],
+      datasets: [{
+        label: 'Confidence',
+        data: [1 - p, p],
+        backgroundColor: ['#22c55e', c],
+        borderRadius: 4,
+        barPercentage: 0.6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      indexAxis: 'y',
+      scales: {
+        x: { max: 1, grid: { color: '#2a2d3a' }, ticks: { callback: (v) => `${(v * 100).toFixed(0)}%` } },
+        y: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${(ctx.parsed.x * 100).toFixed(1)}%` } }
+      }
+    }
+  });
+
+  const feat = gather();
+  const maxVals = { age: 80, monthly_charges: 200, total_charges: 10000, tenure_months: 72, monthly_usage_gb: 500, customer_satisfaction: 10, number_of_services: 8 };
+  const labels = ['Age', 'Monthly Charges', 'Tenure', 'Usage (GB)', 'Satisfaction', 'Services'];
+  const radarData = [
+    feat.age / maxVals.age,
+    feat.monthly_charges / maxVals.monthly_charges,
+    feat.tenure_months / maxVals.tenure_months,
+    feat.monthly_usage_gb / maxVals.monthly_usage_gb,
+    feat.customer_satisfaction / maxVals.customer_satisfaction,
+    feat.number_of_services / maxVals.number_of_services,
+  ];
+
+  chartInstances.radar = new Chart(document.getElementById('chart_radar'), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Customer Profile',
+        data: radarData,
+        backgroundColor: 'rgba(99,102,241,0.15)',
+        borderColor: '#6366f1',
+        borderWidth: 2,
+        pointBackgroundColor: '#6366f1',
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      scales: {
+        r: {
+          min: 0, max: 1, ticks: { display: false },
+          grid: { color: '#2a2d3a' },
+          angleLines: { color: '#2a2d3a' },
+          pointLabels: { color: '#8b8fa3', font: { size: 10 } }
+        }
+      },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+
+  const tenure = feat.tenure_months;
+  const sat = feat.customer_satisfaction;
+  const contract = feat.contract_type;
+  const monthly = feat.monthly_charges;
+  const isShortTenure = tenure < 12 ? 1 : 0;
+  const isLowSat = sat < 5 ? 1 : 0;
+  const isMonthToMonth = contract === 'month-to-month' ? 1 : 0;
+  const isHighCharges = monthly > 100 ? 1 : 0;
+  const riskScore = ((p * 0.4) + (isShortTenure * 0.2) + ((1 - sat / 10) * 0.2) + (isMonthToMonth * 0.15) + (isHighCharges * 0.05));
+  const finalRisk = Math.min(1, riskScore);
+
+  chartInstances.risk = new Chart(document.getElementById('chart_risk'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Risk Score', 'Remaining'],
+      datasets: [{
+        data: [finalRisk, 1 - finalRisk],
+        backgroundColor: [churnColor(finalRisk), '#1a1d28'],
+        borderWidth: 0,
+        cutout: '78%',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${(ctx.parsed * 100).toFixed(0)}%` } }
+      }
+    },
+    plugins: [{
+      id: 'riskText',
+      afterDraw(chart) {
+        const meta = chart.getDatasetMeta(0);
+        const arc = meta.data[0];
+        const cx = arc.x; const cy = arc.y;
+        const { ctx } = chart;
+        ctx.save();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = '700 24px system-ui';
+        ctx.fillStyle = churnColor(finalRisk);
+        ctx.fillText(`${(finalRisk * 100).toFixed(0)}%`, cx, cy - 6);
+        ctx.font = '400 11px system-ui';
+        ctx.fillStyle = '#8b8fa3';
+        ctx.fillText('overall risk', cx, cy + 16);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function renderCLVCharts(data) {
+  const wrapper = document.getElementById('charts_wrapper');
+  wrapper.innerHTML = `
+    <div class="chart-box"><h3>Predicted CLV</h3><canvas id="chart_clv_gauge"></canvas></div>
+    <div class="chart-box"><h3>CLV Breakdown</h3><canvas id="chart_clv_bars"></canvas></div>
+    <div class="chart-box"><h3>Customer Profile</h3><canvas id="chart_clv_radar"></canvas></div>
+    <div class="chart-box"><h3>Value Drivers</h3><canvas id="chart_clv_drivers"></canvas></div>
+  `;
+  document.getElementById('result').classList.add('show');
+  const clv = data.predicted_lifetime_value;
+  const maxClv = 15000;
+  const clvRatio = Math.min(1, clv / maxClv);
+  const quartile = clvRatio < 0.25 ? 'Low' : clvRatio < 0.5 ? 'Medium' : clvRatio < 0.75 ? 'High' : 'Premium';
+  const driverColor = clvRatio < 0.25 ? '#ef4444' : clvRatio < 0.5 ? '#eab308' : clvRatio < 0.75 ? '#22c55e' : '#6366f1';
+
+  chartInstances.clvGauge = new Chart(document.getElementById('chart_clv_gauge'), {
+    type: 'doughnut',
+    data: {
+      labels: ['CLV', 'Remaining'],
+      datasets: [{
+        data: [clv, Math.max(0, maxClv - clv)],
+        backgroundColor: [driverColor, '#1a1d28'],
+        borderWidth: 0, cutout: '78%',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `$${ctx.parsed.toLocaleString()}` } } }
+    },
+    plugins: [{
+      id: 'clvGaugeText',
+      afterDraw(chart) {
+        const meta = chart.getDatasetMeta(0);
+        const arc = meta.data[0];
+        const cx = arc.x; const cy = arc.y;
+        const { ctx } = chart;
+        ctx.save();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = '700 22px system-ui';
+        ctx.fillStyle = driverColor;
+        ctx.fillText(`$${clv.toLocaleString('en-US', {minimumFractionDigits:0})}`, cx, cy - 6);
+        ctx.font = '400 11px system-ui';
+        ctx.fillStyle = '#8b8fa3';
+        ctx.fillText(quartile, cx, cy + 16);
+        ctx.restore();
+      }
+    }]
+  });
+
+  const feat = gather();
+  const monthly = feat.monthly_charges;
+  const tenure = feat.tenure_months;
+  const monthlyRevenue = monthly;
+  const annualRevenue = monthly * 12;
+  const projectedRevenue = monthly * tenure;
+  const servicesRevenue = feat.number_of_services * 15;
+  const serviceCost = feat.monthly_usage_gb * 0.5;
+
+  chartInstances.clvBars = new Chart(document.getElementById('chart_clv_bars'), {
+    type: 'bar',
+    data: {
+      labels: ['Monthly Rev', 'Annual Rev', 'Projected', 'Services Rev'],
+      datasets: [{
+        label: 'Revenue ($)',
+        data: [monthlyRevenue, annualRevenue, projectedRevenue, servicesRevenue],
+        backgroundColor: ['#6366f1', '#06b6d4', '#22c55e', '#eab308'],
+        borderRadius: 4,
+        barPercentage: 0.6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#2a2d3a' }, ticks: { callback: (v) => `$${v}` } },
+        x: { grid: { display: false }, ticks: { color: '#8b8fa3', font: { size: 9 } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `$${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2})}` } }
+      }
+    }
+  });
+
+  const featLabels = ['Age', 'Monthly Charges', 'Tenure', 'Usage (GB)', 'Satisfaction', 'Services'];
+  const maxVals = { age: 80, monthly_charges: 200, total_charges: 10000, tenure_months: 72, monthly_usage_gb: 500, customer_satisfaction: 10, number_of_services: 8 };
+  const radarCLV = [
+    feat.age / maxVals.age,
+    feat.monthly_charges / maxVals.monthly_charges,
+    feat.tenure_months / maxVals.tenure_months,
+    feat.monthly_usage_gb / maxVals.monthly_usage_gb,
+    feat.customer_satisfaction / maxVals.customer_satisfaction,
+    feat.number_of_services / maxVals.number_of_services,
+  ];
+
+  chartInstances.clvRadar = new Chart(document.getElementById('chart_clv_radar'), {
+    type: 'radar',
+    data: {
+      labels: featLabels,
+      datasets: [{
+        label: 'Customer Profile',
+        data: radarCLV,
+        backgroundColor: 'rgba(6,182,212,0.15)',
+        borderColor: '#06b6d4',
+        borderWidth: 2,
+        pointBackgroundColor: '#06b6d4',
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      scales: {
+        r: {
+          min: 0, max: 1, ticks: { display: false },
+          grid: { color: '#2a2d3a' },
+          angleLines: { color: '#2a2d3a' },
+          pointLabels: { color: '#8b8fa3', font: { size: 10 } }
+        }
+      },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+
+  const driverNames = ['Tenure', 'Monthly Charges', 'Satisfaction', 'Contract Type', 'Services', 'Usage'];
+  const driverScores = [
+    Math.min(1, tenure / 72),
+    Math.min(1, monthly / 200),
+    sat / 10,
+    contract === 'two year' ? 1 : contract === 'one year' ? 0.6 : 0.2,
+    Math.min(1, feat.number_of_services / 8),
+    Math.min(1, feat.monthly_usage_gb / 500),
+  ];
+
+  chartInstances.clvDrivers = new Chart(document.getElementById('chart_clv_drivers'), {
+    type: 'bar',
+    data: {
+      labels: driverNames,
+      datasets: [{
+        label: 'Score',
+        data: driverScores,
+        backgroundColor: driverScores.map(s => s > 0.6 ? '#22c55e' : s > 0.3 ? '#eab308' : '#ef4444'),
+        borderRadius: 4,
+        barPercentage: 0.6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      indexAxis: 'y',
+      scales: {
+        x: { max: 1, grid: { color: '#2a2d3a' }, ticks: { callback: (v) => `${(v * 100).toFixed(0)}%` } },
+        y: { grid: { display: false }, ticks: { color: '#8b8fa3', font: { size: 10 } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${(ctx.parsed.x * 100).toFixed(0)}%` } }
+      }
+    }
+  });
+}
+
 async function predict(type) {
   const btn = document.getElementById(type === 'churn' ? 'btn_churn' : 'btn_clv');
   const result = document.getElementById('result');
@@ -289,6 +605,7 @@ async function predict(type) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Predicting...';
   result.classList.remove('show', 'error');
+  destroyCharts();
 
   try {
     const res = await fetch(`${API}/predict/${type}`, {
@@ -299,31 +616,20 @@ async function predict(type) {
     const data = await res.json();
 
     if (!res.ok) {
-      const msg = data.detail ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail) : 'Unknown error';
+      const msg = data.detail
+        ? (Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail)
+        : 'Unknown error';
       result.className = 'result show error';
       result.innerHTML = `<h3>Error</h3><div class="value">${msg}</div>`;
       return;
     }
 
-    if (type === 'churn') {
-      const isChurn = data.churn_prediction === 'yes';
-      result.className = 'result show';
-      result.innerHTML = `
-        <h3>Churn Prediction</h3>
-        <div class="value ${isChurn ? 'churn-yes' : 'churn-no'}">${isChurn ? '⚠️ Will Churn' : '✅ Will Not Churn'}</div>
-        <div class="sub">Probability: ${(data.probability * 100).toFixed(1)}% churn likelihood</div>
-      `;
-    } else {
-      result.className = 'result show';
-      result.innerHTML = `
-        <h3>Customer Lifetime Value</h3>
-        <div class="value" style="color:var(--accent)">$${data.predicted_lifetime_value.toLocaleString('en-US', {minimumFractionDigits:2})}</div>
-        <div class="sub">Predicted total lifetime value</div>
-      `;
-    }
+    if (type === 'churn') renderChurnCharts(data);
+    else renderCLVCharts(data);
+
   } catch (err) {
     result.className = 'result show error';
-    result.innerHTML = `<h3>Connection Error</h3><div class="value">Could not reach the API. Check your connection or try again.</div>`;
+    result.innerHTML = '<h3>Connection Error</h3><div class="value">Could not reach the API. Check your connection or try again.</div>';
   } finally {
     btn.disabled = false;
     btn.textContent = type === 'churn' ? 'Predict Churn' : 'Predict CLV';
