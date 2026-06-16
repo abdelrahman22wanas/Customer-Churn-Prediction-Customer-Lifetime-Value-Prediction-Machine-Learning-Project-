@@ -194,6 +194,78 @@ The project generates:
 - scikit-learn
 - jupyter (optional, for notebook)
 
+## Deployment as REST API
+
+This project can be deployed as a FastAPI REST API for real-time predictions.
+
+### Project Structure (Deployment)
+
+```
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app with endpoints
+│   ├── schemas.py           # Pydantic request/response models
+│   └── model_loader.py      # Loads saved models & preprocessors
+├── models/                  # Serialized model artifacts (generated)
+├── train.py                 # Training script with model serialization
+├── requirements.txt         # Includes fastapi, uvicorn, joblib
+├── Dockerfile               # Container definition
+└── .gitignore
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check with model status |
+| POST | `/predict/churn` | Predict customer churn (yes/no) with probability |
+| POST | `/predict/clv` | Predict customer lifetime value |
+
+### Running Locally
+
+```bash
+# 1. Train models (generates dataset, trains, saves artifacts)
+python train.py
+
+# 2. Start the API server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+API docs available at `http://localhost:8000/docs` (Swagger UI).
+
+### Docker Deployment
+
+```bash
+# Build the image (trains models inside the container)
+docker build -t churn-clv-api .
+
+# Run the container
+docker run -p 8000:8000 churn-clv-api
+```
+
+### Example API Call
+
+```bash
+curl -X POST http://localhost:8000/predict/churn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "age": 45,
+    "monthly_charges": 85.50,
+    "total_charges": 1200.00,
+    "tenure_months": 24,
+    "monthly_usage_gb": 25.0,
+    "customer_satisfaction": 7,
+    "number_of_services": 3,
+    "gender": "male",
+    "contract_type": "month-to-month",
+    "payment_method": "electronic check",
+    "internet_service": "fiber optic",
+    "phone_service": "yes",
+    "streaming_tv": "yes",
+    "streaming_movies": "no"
+  }'
+```
+
 ## Notes
 
 - The dataset is generated synthetically with intentional data quality issues

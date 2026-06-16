@@ -1,0 +1,13 @@
+.venv/
+venv/
+.git/
+__pycache__/
+*.pyc
+.env
+.ipynb_checkpoints/
+ml_final_project.ipynb
+visualizations/
+project_report.md
+project_report.pdf
+PROJECT_FILES_EXPLANATION.md
+QUICK_START.md
