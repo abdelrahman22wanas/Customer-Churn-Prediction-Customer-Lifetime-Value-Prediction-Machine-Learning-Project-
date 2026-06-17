@@ -1,0 +1,16 @@
+.git/
+.gitignore
+models/
+app/
+train.py
+Dockerfile
+docker-compose.yml
+requirements.txt
+fly.toml
+generate_dirty_data.py
+.env.example
+.github/
+tests/
+uvicorn_out.txt
+*.pyc
+__pycache__/
