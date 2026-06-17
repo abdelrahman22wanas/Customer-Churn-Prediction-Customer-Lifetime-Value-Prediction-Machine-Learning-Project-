@@ -564,8 +564,8 @@ function renderCLVCharts(data) {
   const driverScores = [
     Math.min(1, tenure / 72),
     Math.min(1, monthly / 200),
-    sat / 10,
-    contract === 'two year' ? 1 : contract === 'one year' ? 0.6 : 0.2,
+    feat.customer_satisfaction / 10,
+    feat.contract_type === 'two year' ? 1 : feat.contract_type === 'one year' ? 0.6 : 0.2,
     Math.min(1, feat.number_of_services / 8),
     Math.min(1, feat.monthly_usage_gb / 500),
   ];
